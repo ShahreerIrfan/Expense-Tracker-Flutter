@@ -1,0 +1,364 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../providers/auth_provider.dart';
+import '../../../core/constants/app_constants.dart';
+import '../../../core/constants/colors.dart';
+import '../../../core/security/auth_service.dart';
+import '../../../core/security/secure_storage.dart';
+
+class SettingsScreen extends ConsumerWidget {
+  const SettingsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(currentUserProvider);
+    final themeMode = ref.watch(themeModeProvider);
+    final locale = ref.watch(localeProvider);
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Settings')),
+      body: ListView(
+        children: [
+          // Profile section
+          Container(
+            margin: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primaryContainer,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 30,
+                  backgroundColor: Colors.white,
+                  child: Text(
+                    user?.name.isNotEmpty == true
+                        ? user!.name[0].toUpperCase()
+                        : '?',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        user?.name ?? 'User',
+                        style: const TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      if (user?.email != null)
+                        Text(user!.email!,
+                            style: const TextStyle(fontSize: 13)),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.edit),
+                  onPressed: () {
+                    // TODO: Edit profile
+                  },
+                ),
+              ],
+            ),
+          ),
+
+          // Appearance
+          _SectionHeader(title: 'Appearance'),
+          ListTile(
+            leading: const Icon(Icons.dark_mode),
+            title: const Text('Theme'),
+            subtitle: Text(themeMode == ThemeMode.dark
+                ? 'Dark'
+                : themeMode == ThemeMode.light
+                    ? 'Light'
+                    : 'System'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _showThemePicker(context, ref),
+          ),
+          ListTile(
+            leading: const Icon(Icons.language),
+            title: const Text('Language'),
+            subtitle: Text(locale.languageCode == 'bn' ? 'বাংলা' : 'English'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _showLanguagePicker(context, ref, locale),
+          ),
+
+          // Currency
+          _SectionHeader(title: 'Finance'),
+          ListTile(
+            leading: const Icon(Icons.monetization_on),
+            title: const Text('Currency'),
+            subtitle: Text(user?.currency ?? AppConstants.defaultCurrency),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _showCurrencyPicker(context, ref),
+          ),
+
+          // Security
+          _SectionHeader(title: 'Security'),
+          ListTile(
+            leading: const Icon(Icons.lock),
+            title: const Text('Change PIN'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _changePin(context, ref),
+          ),
+          SwitchListTile(
+            secondary: const Icon(Icons.fingerprint),
+            title: const Text('Biometric Lock'),
+            subtitle: const Text('Use fingerprint or face to unlock'),
+            value: user?.biometricEnabled ?? false,
+            onChanged: (v) async {
+              if (v) {
+                final available = await AuthService.isBiometricAvailable();
+                if (!available && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text('Biometrics not available on this device')),
+                  );
+                  return;
+                }
+              }
+              // Toggle biometric in user settings
+            },
+          ),
+
+          // Data
+          _SectionHeader(title: 'Data'),
+          ListTile(
+            leading: const Icon(Icons.backup),
+            title: const Text('Backup & Restore'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.pushNamed(context, '/backup'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.category),
+            title: const Text('Manage Categories'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.pushNamed(context, '/categories'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.account_balance_wallet),
+            title: const Text('Manage Accounts'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.pushNamed(context, '/accounts'),
+          ),
+
+          // About
+          _SectionHeader(title: 'About'),
+          ListTile(
+            leading: const Icon(Icons.info_outline),
+            title: const Text('About App'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.pushNamed(context, '/about'),
+          ),
+
+          const SizedBox(height: 40),
+        ],
+      ),
+    );
+  }
+
+  void _showThemePicker(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: const Text('Choose Theme'),
+        children: [
+          SimpleDialogOption(
+            onPressed: () {
+              ref.read(themeModeProvider.notifier).setThemeMode(ThemeMode.light);
+              Navigator.pop(ctx);
+            },
+            child: const Row(children: [
+              Icon(Icons.light_mode),
+              SizedBox(width: 12),
+              Text('Light'),
+            ]),
+          ),
+          SimpleDialogOption(
+            onPressed: () {
+              ref.read(themeModeProvider.notifier).setThemeMode(ThemeMode.dark);
+              Navigator.pop(ctx);
+            },
+            child: const Row(children: [
+              Icon(Icons.dark_mode),
+              SizedBox(width: 12),
+              Text('Dark'),
+            ]),
+          ),
+          SimpleDialogOption(
+            onPressed: () {
+              ref.read(themeModeProvider.notifier).setThemeMode(ThemeMode.system);
+              Navigator.pop(ctx);
+            },
+            child: const Row(children: [
+              Icon(Icons.brightness_auto),
+              SizedBox(width: 12),
+              Text('System'),
+            ]),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showLanguagePicker(
+      BuildContext context, WidgetRef ref, Locale locale) {
+    showDialog(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: const Text('Choose Language'),
+        children: [
+          SimpleDialogOption(
+            onPressed: () {
+              ref
+                  .read(localeProvider.notifier)
+                  .setLocale(const Locale('en'));
+              Navigator.pop(ctx);
+            },
+            child: Text('English',
+                style: TextStyle(
+                    fontWeight: locale.languageCode == 'en'
+                        ? FontWeight.bold
+                        : null)),
+          ),
+          SimpleDialogOption(
+            onPressed: () {
+              ref
+                  .read(localeProvider.notifier)
+                  .setLocale(const Locale('bn'));
+              Navigator.pop(ctx);
+            },
+            child: Text('বাংলা',
+                style: TextStyle(
+                    fontWeight: locale.languageCode == 'bn'
+                        ? FontWeight.bold
+                        : null)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showCurrencyPicker(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: const Text('Choose Currency'),
+        children: AppConstants.currencySymbols.entries
+            .map((e) => SimpleDialogOption(
+                  onPressed: () {
+                    // Update user currency
+                    Navigator.pop(ctx);
+                  },
+                  child: Text('${e.key} (${e.value})'),
+                ))
+            .toList(),
+      ),
+    );
+  }
+
+  void _changePin(BuildContext context, WidgetRef ref) {
+    final oldPinController = TextEditingController();
+    final newPinController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Change PIN'),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: oldPinController,
+                obscureText: true,
+                maxLength: 4,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Current PIN'),
+                validator: (v) =>
+                    v == null || v.length < 4 ? '4-digit PIN required' : null,
+              ),
+              TextFormField(
+                controller: newPinController,
+                obscureText: true,
+                maxLength: 4,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'New PIN'),
+                validator: (v) =>
+                    v == null || v.length < 4 ? '4-digit PIN required' : null,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () async {
+              if (formKey.currentState!.validate()) {
+                final user = ref.read(currentUserProvider);
+                if (user != null) {
+                  final valid =
+                      await SecureStorageService.verifyPin(user.id!, oldPinController.text);
+                  if (valid) {
+                    await SecureStorageService.savePin(user.id!, newPinController.text);
+                    if (ctx.mounted) {
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('PIN changed successfully'),
+                          backgroundColor: AppColors.success,
+                        ),
+                      );
+                    }
+                  } else {
+                    if (ctx.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Incorrect current PIN'),
+                          backgroundColor: AppColors.error,
+                        ),
+                      );
+                    }
+                  }
+                }
+              }
+            },
+            child: const Text('Change'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final String title;
+  const _SectionHeader({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
+      child: Text(
+        title.toUpperCase(),
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: Theme.of(context).colorScheme.primary,
+          letterSpacing: 1.2,
+        ),
+      ),
+    );
+  }
+}
