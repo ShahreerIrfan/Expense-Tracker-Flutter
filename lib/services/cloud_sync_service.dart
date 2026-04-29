@@ -405,10 +405,10 @@ class CloudSyncService {
               balance: drift.Value(m['balance'] as double? ?? 0),
               initialBalance: drift.Value(m['initial_balance'] as double? ?? 0),
               currency: drift.Value(m['currency'] as String? ?? 'BDT'),
-              color: drift.Value(m['color'] as String?),
-              icon: drift.Value(m['icon'] as String?),
-              bankName: drift.Value(m['bank_name'] as String?),
-              accountNumber: drift.Value(m['account_number'] as String?),
+              color: drift.Value((m['color'] as String?) ?? '#2196F3'),
+              icon: drift.Value((m['icon'] as String?) ?? 'account_balance_wallet'),
+              bankName: drift.Value<String?>(m['bank_name'] as String?),
+              accountNumber: drift.Value<String?>(m['account_number'] as String?),
               isActive: drift.Value(m['is_active'] as bool? ?? true),
             ));
         result.accounts++;

@@ -56,7 +56,6 @@ dependencies:
 
   # Cloud Sync
   postgres: ^3.4.5
-  connectivity_plus: ^6.1.0
 
 dev_dependencies:
   flutter_test:
