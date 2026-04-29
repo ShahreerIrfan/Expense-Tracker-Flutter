@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:postgres/postgres.dart';
 import '../database/app_database.dart';
@@ -64,8 +65,9 @@ class CloudAuthService {
     required String password,
     String avatarColor = '#4CAF50',
   }) async {
-    final conn = await _connect();
+    Connection? conn;
     try {
+      conn = await _connect();
       await _ensureUsersTable(conn);
 
       // Check if email already exists
@@ -122,8 +124,16 @@ class CloudAuthService {
         createdAt: now,
         updatedAt: now,
       );
+    } on AuthException {
+      rethrow;
+    } on SocketException catch (e) {
+      throw AuthException('Cannot reach server (${e.message}). Check your Wi-Fi/data.');
+    } on PgException catch (e) {
+      throw AuthException('Database error: ${e.message}');
+    } catch (e) {
+      throw AuthException('Registration error: $e');
     } finally {
-      await conn.close();
+      await conn?.close();
     }
   }
 
@@ -132,8 +142,9 @@ class CloudAuthService {
     required String email,
     required String password,
   }) async {
-    final conn = await _connect();
+    Connection? conn;
     try {
+      conn = await _connect();
       await _ensureUsersTable(conn);
 
       final hash = _hashPassword(password);
@@ -218,16 +229,25 @@ class CloudAuthService {
         language: userLanguage,
         isDarkMode: userDarkMode,
       );
+    } on AuthException {
+      rethrow;
+    } on SocketException catch (e) {
+      throw AuthException('Cannot reach server (${e.message}). Check your Wi-Fi/data.');
+    } on PgException catch (e) {
+      throw AuthException('Database error: ${e.message}');
+    } catch (e) {
+      throw AuthException('Login error: $e');
     } finally {
-      await conn.close();
+      await conn?.close();
     }
   }
 
   /// Update PIN and biometric flag in cloud
   Future<void> syncSecuritySettings(UserEntity user) async {
     if (user.email == null) return;
-    final conn = await _connect();
+    Connection? conn;
     try {
+      conn = await _connect();
       await conn.execute(
         Sql.named('''
           UPDATE users SET pin = @pin, biometric_enabled = @be, updated_at = NOW()
@@ -240,7 +260,7 @@ class CloudAuthService {
         },
       );
     } finally {
-      await conn.close();
+      await conn?.close();
     }
   }
 }

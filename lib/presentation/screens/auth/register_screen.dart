@@ -60,7 +60,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     } on AuthException catch (e) {
       _showError(e.message);
     } catch (e) {
-      _showError('Registration failed. Check your internet connection.');
+      _showError(e.toString());
     } finally {
       if (mounted) setState(() => _loading = false);
     }
