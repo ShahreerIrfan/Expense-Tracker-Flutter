@@ -26,7 +26,7 @@ class AuthService {
         localizedReason: 'Authenticate to access Expense Tracker',
         options: const AuthenticationOptions(
           stickyAuth: true,
-          biometricOnly: true,
+          biometricOnly: false,
         ),
       );
     } catch (_) {

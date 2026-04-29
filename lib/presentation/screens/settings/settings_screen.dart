@@ -61,9 +61,7 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 IconButton(
                   icon: const Icon(Icons.edit),
-                  onPressed: () {
-                    // TODO: Edit profile
-                  },
+                  onPressed: () => _editProfile(context, ref, user),
                 ),
               ],
             ),
@@ -382,6 +380,54 @@ class SettingsScreen extends ConsumerWidget {
               }
             },
             child: Text(hasPin ? 'Change' : 'Set PIN'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _editProfile(BuildContext context, WidgetRef ref, user) {
+    if (user == null) return;
+    final nameCtrl = TextEditingController(text: user.name);
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Edit Profile'),
+        content: Form(
+          key: formKey,
+          child: TextFormField(
+            controller: nameCtrl,
+            decoration: const InputDecoration(
+              labelText: 'Full Name',
+              prefixIcon: Icon(Icons.person_outline),
+            ),
+            validator: (v) =>
+                v == null || v.trim().isEmpty ? 'Name cannot be empty' : null,
+            textCapitalization: TextCapitalization.words,
+          ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () async {
+              if (!formKey.currentState!.validate()) return;
+              final updated = user.copyWith(name: nameCtrl.text.trim());
+              await ref.read(currentUserProvider.notifier).updateUser(updated);
+              if (ctx.mounted) {
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Profile updated'),
+                    backgroundColor: AppColors.success,
+                  ),
+                );
+              }
+            },
+            child: const Text('Save'),
           ),
         ],
       ),

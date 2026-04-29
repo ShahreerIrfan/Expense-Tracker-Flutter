@@ -4,6 +4,7 @@ import '../../../providers/expense_provider.dart';
 import '../../../providers/category_provider.dart';
 import '../../../providers/account_provider.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../providers/database_provider.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/colors.dart';
 import '../../../utils/formatters.dart';
@@ -373,6 +374,11 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
           ),
         );
         Navigator.pop(context);
+      }
+      // Auto-sync in background
+      final uid = user?.id;
+      if (uid != null) {
+        ref.read(cloudSyncServiceProvider).autoSync(uid);
       }
     } catch (e) {
       if (mounted) {

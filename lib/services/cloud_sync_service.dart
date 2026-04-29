@@ -170,14 +170,25 @@ class CloudSyncService {
     ''');
   }
 
-  /// Push all local data to cloud (overwrites remote)
+  /// Auto sync in background — silently pushes all data, returns true on success.
+  Future<bool> autoSync(int userId) async {
+    try {
+      final r = await pushAll(userId);
+      return r.success;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Push all local data to cloud (overwrites remote).
+  /// NOTE: Does NOT touch the users table — users are managed by CloudAuthService.
   Future<SyncResult> pushAll(int userId) async {
     final result = SyncResult();
     try {
       final conn = await _connect();
       await initSchema();
 
-      // Wipe remote data for this user
+      // Wipe remote data for this user (no users table — auth service owns that)
       await conn.execute(Sql.named('DELETE FROM expenses WHERE user_id = @uid'),
           parameters: {'uid': userId});
       await conn.execute(Sql.named('DELETE FROM incomes WHERE user_id = @uid'),
@@ -188,31 +199,6 @@ class CloudSyncService {
           parameters: {'uid': userId});
       await conn.execute(Sql.named('DELETE FROM categories WHERE user_id = @uid'),
           parameters: {'uid': userId});
-      await conn.execute(Sql.named('DELETE FROM users WHERE id = @uid'),
-          parameters: {'uid': userId});
-
-      // Push user
-      final user = await _db.userDao.getUserById(userId);
-      if (user != null) {
-        await conn.execute(
-          Sql.named('''INSERT INTO users (id, name, email, avatar_color, biometric_enabled, currency, language, is_dark_mode, is_active, created_at, updated_at)
-            VALUES (@id, @name, @email, @ac, @be, @cur, @lang, @dm, @ia, @ca, @ua)'''),
-          parameters: {
-            'id': user.id,
-            'name': user.name,
-            'email': user.email,
-            'ac': user.avatarColor,
-            'be': user.biometricEnabled,
-            'cur': user.currency,
-            'lang': user.language,
-            'dm': user.isDarkMode,
-            'ia': user.isActive,
-            'ca': user.createdAt,
-            'ua': user.updatedAt,
-          },
-        );
-        result.users = 1;
-      }
 
       // Push categories
       final categories = await _db.categoryDao.getAllCategories(userId);
