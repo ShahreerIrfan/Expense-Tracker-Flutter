@@ -43,6 +43,17 @@ class $UsersTable extends Users with TableInfo<$UsersTable, User> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _passwordHashMeta = const VerificationMeta(
+    'passwordHash',
+  );
+  @override
+  late final GeneratedColumn<String> passwordHash = GeneratedColumn<String>(
+    'password_hash',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _avatarColorMeta = const VerificationMeta(
     'avatarColor',
   );
@@ -162,6 +173,7 @@ class $UsersTable extends Users with TableInfo<$UsersTable, User> {
     id,
     name,
     email,
+    passwordHash,
     avatarColor,
     pin,
     biometricEnabled,
@@ -199,6 +211,15 @@ class $UsersTable extends Users with TableInfo<$UsersTable, User> {
       context.handle(
         _emailMeta,
         email.isAcceptableOrUnknown(data['email']!, _emailMeta),
+      );
+    }
+    if (data.containsKey('password_hash')) {
+      context.handle(
+        _passwordHashMeta,
+        passwordHash.isAcceptableOrUnknown(
+          data['password_hash']!,
+          _passwordHashMeta,
+        ),
       );
     }
     if (data.containsKey('avatar_color')) {
@@ -285,6 +306,10 @@ class $UsersTable extends Users with TableInfo<$UsersTable, User> {
         DriftSqlType.string,
         data['${effectivePrefix}email'],
       ),
+      passwordHash: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}password_hash'],
+      ),
       avatarColor: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}avatar_color'],
@@ -334,6 +359,7 @@ class User extends DataClass implements Insertable<User> {
   final int id;
   final String name;
   final String? email;
+  final String? passwordHash;
   final String avatarColor;
   final String? pin;
   final bool biometricEnabled;
@@ -347,6 +373,7 @@ class User extends DataClass implements Insertable<User> {
     required this.id,
     required this.name,
     this.email,
+    this.passwordHash,
     required this.avatarColor,
     this.pin,
     required this.biometricEnabled,
@@ -364,6 +391,9 @@ class User extends DataClass implements Insertable<User> {
     map['name'] = Variable<String>(name);
     if (!nullToAbsent || email != null) {
       map['email'] = Variable<String>(email);
+    }
+    if (!nullToAbsent || passwordHash != null) {
+      map['password_hash'] = Variable<String>(passwordHash);
     }
     map['avatar_color'] = Variable<String>(avatarColor);
     if (!nullToAbsent || pin != null) {
@@ -386,6 +416,9 @@ class User extends DataClass implements Insertable<User> {
       email: email == null && nullToAbsent
           ? const Value.absent()
           : Value(email),
+      passwordHash: passwordHash == null && nullToAbsent
+          ? const Value.absent()
+          : Value(passwordHash),
       avatarColor: Value(avatarColor),
       pin: pin == null && nullToAbsent ? const Value.absent() : Value(pin),
       biometricEnabled: Value(biometricEnabled),
@@ -407,6 +440,7 @@ class User extends DataClass implements Insertable<User> {
       id: serializer.fromJson<int>(json['id']),
       name: serializer.fromJson<String>(json['name']),
       email: serializer.fromJson<String?>(json['email']),
+      passwordHash: serializer.fromJson<String?>(json['passwordHash']),
       avatarColor: serializer.fromJson<String>(json['avatarColor']),
       pin: serializer.fromJson<String?>(json['pin']),
       biometricEnabled: serializer.fromJson<bool>(json['biometricEnabled']),
@@ -425,6 +459,7 @@ class User extends DataClass implements Insertable<User> {
       'id': serializer.toJson<int>(id),
       'name': serializer.toJson<String>(name),
       'email': serializer.toJson<String?>(email),
+      'passwordHash': serializer.toJson<String?>(passwordHash),
       'avatarColor': serializer.toJson<String>(avatarColor),
       'pin': serializer.toJson<String?>(pin),
       'biometricEnabled': serializer.toJson<bool>(biometricEnabled),
@@ -441,6 +476,7 @@ class User extends DataClass implements Insertable<User> {
     int? id,
     String? name,
     Value<String?> email = const Value.absent(),
+    Value<String?> passwordHash = const Value.absent(),
     String? avatarColor,
     Value<String?> pin = const Value.absent(),
     bool? biometricEnabled,
@@ -454,6 +490,7 @@ class User extends DataClass implements Insertable<User> {
     id: id ?? this.id,
     name: name ?? this.name,
     email: email.present ? email.value : this.email,
+    passwordHash: passwordHash.present ? passwordHash.value : this.passwordHash,
     avatarColor: avatarColor ?? this.avatarColor,
     pin: pin.present ? pin.value : this.pin,
     biometricEnabled: biometricEnabled ?? this.biometricEnabled,
@@ -469,6 +506,9 @@ class User extends DataClass implements Insertable<User> {
       id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
       email: data.email.present ? data.email.value : this.email,
+      passwordHash: data.passwordHash.present
+          ? data.passwordHash.value
+          : this.passwordHash,
       avatarColor: data.avatarColor.present
           ? data.avatarColor.value
           : this.avatarColor,
@@ -493,6 +533,7 @@ class User extends DataClass implements Insertable<User> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('email: $email, ')
+          ..write('passwordHash: $passwordHash, ')
           ..write('avatarColor: $avatarColor, ')
           ..write('pin: $pin, ')
           ..write('biometricEnabled: $biometricEnabled, ')
@@ -511,6 +552,7 @@ class User extends DataClass implements Insertable<User> {
     id,
     name,
     email,
+    passwordHash,
     avatarColor,
     pin,
     biometricEnabled,
@@ -528,6 +570,7 @@ class User extends DataClass implements Insertable<User> {
           other.id == this.id &&
           other.name == this.name &&
           other.email == this.email &&
+          other.passwordHash == this.passwordHash &&
           other.avatarColor == this.avatarColor &&
           other.pin == this.pin &&
           other.biometricEnabled == this.biometricEnabled &&
@@ -543,6 +586,7 @@ class UsersCompanion extends UpdateCompanion<User> {
   final Value<int> id;
   final Value<String> name;
   final Value<String?> email;
+  final Value<String?> passwordHash;
   final Value<String> avatarColor;
   final Value<String?> pin;
   final Value<bool> biometricEnabled;
@@ -556,6 +600,7 @@ class UsersCompanion extends UpdateCompanion<User> {
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.email = const Value.absent(),
+    this.passwordHash = const Value.absent(),
     this.avatarColor = const Value.absent(),
     this.pin = const Value.absent(),
     this.biometricEnabled = const Value.absent(),
@@ -570,6 +615,7 @@ class UsersCompanion extends UpdateCompanion<User> {
     this.id = const Value.absent(),
     required String name,
     this.email = const Value.absent(),
+    this.passwordHash = const Value.absent(),
     this.avatarColor = const Value.absent(),
     this.pin = const Value.absent(),
     this.biometricEnabled = const Value.absent(),
@@ -584,6 +630,7 @@ class UsersCompanion extends UpdateCompanion<User> {
     Expression<int>? id,
     Expression<String>? name,
     Expression<String>? email,
+    Expression<String>? passwordHash,
     Expression<String>? avatarColor,
     Expression<String>? pin,
     Expression<bool>? biometricEnabled,
@@ -598,6 +645,7 @@ class UsersCompanion extends UpdateCompanion<User> {
       if (id != null) 'id': id,
       if (name != null) 'name': name,
       if (email != null) 'email': email,
+      if (passwordHash != null) 'password_hash': passwordHash,
       if (avatarColor != null) 'avatar_color': avatarColor,
       if (pin != null) 'pin': pin,
       if (biometricEnabled != null) 'biometric_enabled': biometricEnabled,
@@ -614,6 +662,7 @@ class UsersCompanion extends UpdateCompanion<User> {
     Value<int>? id,
     Value<String>? name,
     Value<String?>? email,
+    Value<String?>? passwordHash,
     Value<String>? avatarColor,
     Value<String?>? pin,
     Value<bool>? biometricEnabled,
@@ -628,6 +677,7 @@ class UsersCompanion extends UpdateCompanion<User> {
       id: id ?? this.id,
       name: name ?? this.name,
       email: email ?? this.email,
+      passwordHash: passwordHash ?? this.passwordHash,
       avatarColor: avatarColor ?? this.avatarColor,
       pin: pin ?? this.pin,
       biometricEnabled: biometricEnabled ?? this.biometricEnabled,
@@ -651,6 +701,9 @@ class UsersCompanion extends UpdateCompanion<User> {
     }
     if (email.present) {
       map['email'] = Variable<String>(email.value);
+    }
+    if (passwordHash.present) {
+      map['password_hash'] = Variable<String>(passwordHash.value);
     }
     if (avatarColor.present) {
       map['avatar_color'] = Variable<String>(avatarColor.value);
@@ -688,6 +741,7 @@ class UsersCompanion extends UpdateCompanion<User> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('email: $email, ')
+          ..write('passwordHash: $passwordHash, ')
           ..write('avatarColor: $avatarColor, ')
           ..write('pin: $pin, ')
           ..write('biometricEnabled: $biometricEnabled, ')
@@ -6282,6 +6336,7 @@ typedef $$UsersTableCreateCompanionBuilder =
       Value<int> id,
       required String name,
       Value<String?> email,
+      Value<String?> passwordHash,
       Value<String> avatarColor,
       Value<String?> pin,
       Value<bool> biometricEnabled,
@@ -6297,6 +6352,7 @@ typedef $$UsersTableUpdateCompanionBuilder =
       Value<int> id,
       Value<String> name,
       Value<String?> email,
+      Value<String?> passwordHash,
       Value<String> avatarColor,
       Value<String?> pin,
       Value<bool> biometricEnabled,
@@ -6463,6 +6519,11 @@ class $$UsersTableFilterComposer extends Composer<_$AppDatabase, $UsersTable> {
 
   ColumnFilters<String> get email => $composableBuilder(
     column: $table.email,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get passwordHash => $composableBuilder(
+    column: $table.passwordHash,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6711,6 +6772,11 @@ class $$UsersTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get passwordHash => $composableBuilder(
+    column: $table.passwordHash,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get avatarColor => $composableBuilder(
     column: $table.avatarColor,
     builder: (column) => ColumnOrderings(column),
@@ -6774,6 +6840,11 @@ class $$UsersTableAnnotationComposer
 
   GeneratedColumn<String> get email =>
       $composableBuilder(column: $table.email, builder: (column) => column);
+
+  GeneratedColumn<String> get passwordHash => $composableBuilder(
+    column: $table.passwordHash,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get avatarColor => $composableBuilder(
     column: $table.avatarColor,
@@ -7023,6 +7094,7 @@ class $$UsersTableTableManager
                 Value<int> id = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<String?> email = const Value.absent(),
+                Value<String?> passwordHash = const Value.absent(),
                 Value<String> avatarColor = const Value.absent(),
                 Value<String?> pin = const Value.absent(),
                 Value<bool> biometricEnabled = const Value.absent(),
@@ -7036,6 +7108,7 @@ class $$UsersTableTableManager
                 id: id,
                 name: name,
                 email: email,
+                passwordHash: passwordHash,
                 avatarColor: avatarColor,
                 pin: pin,
                 biometricEnabled: biometricEnabled,
@@ -7051,6 +7124,7 @@ class $$UsersTableTableManager
                 Value<int> id = const Value.absent(),
                 required String name,
                 Value<String?> email = const Value.absent(),
+                Value<String?> passwordHash = const Value.absent(),
                 Value<String> avatarColor = const Value.absent(),
                 Value<String?> pin = const Value.absent(),
                 Value<bool> biometricEnabled = const Value.absent(),
@@ -7064,6 +7138,7 @@ class $$UsersTableTableManager
                 id: id,
                 name: name,
                 email: email,
+                passwordHash: passwordHash,
                 avatarColor: avatarColor,
                 pin: pin,
                 biometricEnabled: biometricEnabled,

@@ -31,8 +31,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     if (!mounted) return;
 
     if (user == null) {
-      // No saved user → go to profile select / create
-      Navigator.of(context).pushReplacementNamed('/profile-select');
+      // No saved user → go to login
+      Navigator.of(context).pushReplacementNamed('/login');
     } else if (user.pin != null && user.pin!.isNotEmpty) {
       // User has PIN → go to PIN entry screen
       Navigator.of(context).pushReplacementNamed('/pin-entry');

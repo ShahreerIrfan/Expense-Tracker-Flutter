@@ -4,6 +4,7 @@ class Users extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get name => text().withLength(min: 1, max: 100)();
   TextColumn get email => text().nullable()();
+  TextColumn get passwordHash => text().nullable()();
   TextColumn get avatarColor => text().withDefault(const Constant('#4CAF50'))();
   TextColumn get pin => text().nullable()();
   BoolColumn get biometricEnabled =>

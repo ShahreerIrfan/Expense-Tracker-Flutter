@@ -2,6 +2,7 @@ class UserEntity {
   final int? id;
   final String name;
   final String? email;
+  final String? passwordHash;
   final String avatarColor;
   final String? pin;
   final bool biometricEnabled;
@@ -16,6 +17,7 @@ class UserEntity {
     this.id,
     required this.name,
     this.email,
+    this.passwordHash,
     this.avatarColor = '#4CAF50',
     this.pin,
     this.biometricEnabled = false,
@@ -31,6 +33,7 @@ class UserEntity {
     int? id,
     String? name,
     String? email,
+    String? passwordHash,
     String? avatarColor,
     String? pin,
     bool? biometricEnabled,
@@ -45,6 +48,7 @@ class UserEntity {
       id: id ?? this.id,
       name: name ?? this.name,
       email: email ?? this.email,
+      passwordHash: passwordHash ?? this.passwordHash,
       avatarColor: avatarColor ?? this.avatarColor,
       pin: pin ?? this.pin,
       biometricEnabled: biometricEnabled ?? this.biometricEnabled,

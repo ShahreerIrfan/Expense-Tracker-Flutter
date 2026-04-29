@@ -13,6 +13,7 @@ class UserRepositoryImpl implements UserRepository {
         id: u.id,
         name: u.name,
         email: u.email,
+        passwordHash: u.passwordHash,
         avatarColor: u.avatarColor,
         pin: u.pin,
         biometricEnabled: u.biometricEnabled,
@@ -54,6 +55,7 @@ class UserRepositoryImpl implements UserRepository {
       _userDao.insertUser(UsersCompanion.insert(
         name: user.name,
         email: Value(user.email),
+        passwordHash: Value(user.passwordHash),
         avatarColor: Value(user.avatarColor),
         pin: Value(user.pin),
         biometricEnabled: Value(user.biometricEnabled),
@@ -69,6 +71,7 @@ class UserRepositoryImpl implements UserRepository {
     final updated = existing.copyWith(
       name: user.name,
       email: Value(user.email),
+      passwordHash: Value(user.passwordHash),
       avatarColor: user.avatarColor,
       pin: Value(user.pin),
       biometricEnabled: user.biometricEnabled,
