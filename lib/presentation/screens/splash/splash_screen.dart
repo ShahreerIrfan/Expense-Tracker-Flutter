@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/colors.dart';
+import '../../../providers/auth_provider.dart';
 
-class SplashScreen extends StatefulWidget {
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   void initState() {
     super.initState();
@@ -19,9 +21,26 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _navigateToNext() async {
-    await Future.delayed(const Duration(seconds: 3));
+    await Future.delayed(const Duration(seconds: 2));
     if (!mounted) return;
-    Navigator.of(context).pushReplacementNamed('/profile-select');
+
+    // Try to load the previously logged-in user
+    await ref.read(currentUserProvider.notifier).loadCurrentUser();
+    final user = ref.read(currentUserProvider);
+
+    if (!mounted) return;
+
+    if (user == null) {
+      // No saved user → go to profile select / create
+      Navigator.of(context).pushReplacementNamed('/profile-select');
+    } else if (user.pin != null && user.pin!.isNotEmpty) {
+      // User has PIN → go to PIN entry screen
+      Navigator.of(context).pushReplacementNamed('/pin-entry');
+    } else {
+      // User exists, no PIN → go straight to home
+      ref.read(isAuthenticatedProvider.notifier).state = true;
+      Navigator.of(context).pushReplacementNamed('/home');
+    }
   }
 
   @override

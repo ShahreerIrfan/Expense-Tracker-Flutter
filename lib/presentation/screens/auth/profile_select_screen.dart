@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/constants/colors.dart';
-import '../../../core/security/secure_storage.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../domain/entities/user.dart';
 import '../../../utils/validators.dart';
@@ -121,61 +120,19 @@ class _ProfileSelectScreenState extends ConsumerState<ProfileSelectScreen> {
   }
 
   void _selectUser(UserEntity user) async {
-    if (user.pin != null && user.pin!.isNotEmpty) {
-      final authenticated = await _showPinDialog(user);
-      if (!authenticated) return;
-    }
-    ref.read(currentUserProvider.notifier).setCurrentUser(user);
-    ref.read(isAuthenticatedProvider.notifier).state = true;
-    if (!mounted) return;
-    Navigator.of(context).pushReplacementNamed('/home');
-  }
+    // Save this user as the current user first
+    await ref.read(currentUserProvider.notifier).setCurrentUser(user);
 
-  Future<bool> _showPinDialog(UserEntity user) async {
-    final pinController = TextEditingController();
-    final result = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: Text('Enter PIN for ${user.name}'),
-        content: TextField(
-          controller: pinController,
-          keyboardType: TextInputType.number,
-          obscureText: true,
-          maxLength: 6,
-          decoration: const InputDecoration(
-            hintText: 'Enter your PIN',
-            prefixIcon: Icon(Icons.lock),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final verified = await SecureStorageService.verifyPin(
-                  user.id!, pinController.text);
-              if (context.mounted) {
-                Navigator.pop(context, verified);
-                if (!verified) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Incorrect PIN'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              }
-            },
-            child: const Text('Unlock'),
-          ),
-        ],
-      ),
-    );
-    pinController.dispose();
-    return result ?? false;
+    if (!mounted) return;
+
+    if (user.pin != null && user.pin!.isNotEmpty) {
+      // Has PIN → go to PIN entry screen
+      Navigator.of(context).pushReplacementNamed('/pin-entry');
+    } else {
+      // No PIN → go straight to home
+      ref.read(isAuthenticatedProvider.notifier).state = true;
+      Navigator.of(context).pushReplacementNamed('/home');
+    }
   }
 
   void _showCreateProfileSheet(BuildContext context) {

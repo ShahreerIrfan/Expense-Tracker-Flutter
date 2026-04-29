@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../screens/splash/splash_screen.dart';
 import '../screens/auth/profile_select_screen.dart';
+import '../screens/auth/pin_entry_screen.dart';
 import '../screens/expenses/add_expense_screen.dart';
 import '../screens/expenses/expense_detail_screen.dart';
 import '../screens/income/add_income_screen.dart';
@@ -18,6 +19,7 @@ import 'home_shell.dart';
 class AppRouter {
   static const String splash = '/';
   static const String profileSelect = '/profile-select';
+  static const String pinEntry = '/pin-entry';
   static const String home = '/home';
   static const String addExpense = '/add-expense';
   static const String editExpense = '/edit-expense';
@@ -39,6 +41,8 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const SplashScreen());
       case profileSelect:
         return MaterialPageRoute(builder: (_) => const ProfileSelectScreen());
+      case pinEntry:
+        return MaterialPageRoute(builder: (_) => const PinEntryScreen());
       case home:
         return MaterialPageRoute(builder: (_) => const HomeShell());
       case addExpense:
