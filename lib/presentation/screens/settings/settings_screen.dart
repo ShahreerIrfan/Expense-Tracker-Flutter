@@ -104,32 +104,59 @@ class SettingsScreen extends ConsumerWidget {
           _SectionHeader(title: 'Security'),
           ListTile(
             leading: const Icon(Icons.lock),
-            title: const Text('Change PIN'),
+            title: Text(user?.pin != null && user!.pin!.isNotEmpty
+                ? 'Change PIN'
+                : 'Set PIN'),
+            subtitle: Text(user?.pin != null && user!.pin!.isNotEmpty
+                ? 'PIN protected'
+                : 'Tap to set up PIN'),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => _changePin(context, ref),
+            onTap: () => _changePin(context, ref, hasPin: user?.pin != null && user!.pin!.isNotEmpty),
           ),
           SwitchListTile(
             secondary: const Icon(Icons.fingerprint),
             title: const Text('Biometric Lock'),
             subtitle: const Text('Use fingerprint or face to unlock'),
             value: user?.biometricEnabled ?? false,
-            onChanged: (v) async {
-              if (v) {
-                final available = await AuthService.isBiometricAvailable();
-                if (!available && context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Biometrics not available on this device')),
-                  );
-                  return;
-                }
-              }
-              // Toggle biometric in user settings
-            },
+            onChanged: user == null
+                ? null
+                : (v) async {
+                    if (v) {
+                      final available = await AuthService.isBiometricAvailable();
+                      if (!available && context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text('Biometrics not available on this device')),
+                        );
+                        return;
+                      }
+                      final ok = await AuthService.authenticateWithBiometrics();
+                      if (!ok) return;
+                    }
+                    final updated = user.copyWith(biometricEnabled: v);
+                    await ref.read(currentUserProvider.notifier).updateUser(updated);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(v
+                              ? 'Biometric lock enabled'
+                              : 'Biometric lock disabled'),
+                          backgroundColor: AppColors.success,
+                        ),
+                      );
+                    }
+                  },
           ),
 
           // Data
           _SectionHeader(title: 'Data'),
+          ListTile(
+            leading: const Icon(Icons.cloud_sync, color: AppColors.primary),
+            title: const Text('Cloud Sync'),
+            subtitle: const Text('PostgreSQL backup & restore'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.pushNamed(context, '/cloud-sync'),
+          ),
           ListTile(
             leading: const Icon(Icons.backup),
             title: const Text('Backup & Restore'),
@@ -264,29 +291,31 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  void _changePin(BuildContext context, WidgetRef ref) {
+  void _changePin(BuildContext context, WidgetRef ref, {required bool hasPin}) {
     final oldPinController = TextEditingController();
     final newPinController = TextEditingController();
+    final confirmPinController = TextEditingController();
     final formKey = GlobalKey<FormState>();
 
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Change PIN'),
+        title: Text(hasPin ? 'Change PIN' : 'Set PIN'),
         content: Form(
           key: formKey,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextFormField(
-                controller: oldPinController,
-                obscureText: true,
-                maxLength: 4,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Current PIN'),
-                validator: (v) =>
-                    v == null || v.length < 4 ? '4-digit PIN required' : null,
-              ),
+              if (hasPin)
+                TextFormField(
+                  controller: oldPinController,
+                  obscureText: true,
+                  maxLength: 4,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: 'Current PIN'),
+                  validator: (v) =>
+                      v == null || v.length < 4 ? '4-digit PIN required' : null,
+                ),
               TextFormField(
                 controller: newPinController,
                 obscureText: true,
@@ -295,6 +324,18 @@ class SettingsScreen extends ConsumerWidget {
                 decoration: const InputDecoration(labelText: 'New PIN'),
                 validator: (v) =>
                     v == null || v.length < 4 ? '4-digit PIN required' : null,
+              ),
+              TextFormField(
+                controller: confirmPinController,
+                obscureText: true,
+                maxLength: 4,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Confirm New PIN'),
+                validator: (v) {
+                  if (v == null || v.length < 4) return '4-digit PIN required';
+                  if (v != newPinController.text) return 'PINs do not match';
+                  return null;
+                },
               ),
             ],
           ),
@@ -305,36 +346,42 @@ class SettingsScreen extends ConsumerWidget {
               child: const Text('Cancel')),
           FilledButton(
             onPressed: () async {
-              if (formKey.currentState!.validate()) {
-                final user = ref.read(currentUserProvider);
-                if (user != null) {
-                  final valid =
-                      await SecureStorageService.verifyPin(user.id!, oldPinController.text);
-                  if (valid) {
-                    await SecureStorageService.savePin(user.id!, newPinController.text);
-                    if (ctx.mounted) {
-                      Navigator.pop(ctx);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('PIN changed successfully'),
-                          backgroundColor: AppColors.success,
-                        ),
-                      );
-                    }
-                  } else {
-                    if (ctx.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Incorrect current PIN'),
-                          backgroundColor: AppColors.error,
-                        ),
-                      );
-                    }
+              if (!formKey.currentState!.validate()) return;
+              final user = ref.read(currentUserProvider);
+              if (user == null) return;
+
+              if (hasPin) {
+                final valid = await SecureStorageService.verifyPin(
+                    user.id!, oldPinController.text);
+                if (!valid) {
+                  if (ctx.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Incorrect current PIN'),
+                        backgroundColor: AppColors.error,
+                      ),
+                    );
                   }
+                  return;
                 }
               }
+
+              await SecureStorageService.savePin(user.id!, newPinController.text);
+              // Persist non-empty marker to user.pin so UI knows PIN exists
+              final updated = user.copyWith(pin: 'set');
+              await ref.read(currentUserProvider.notifier).updateUser(updated);
+
+              if (ctx.mounted) {
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(hasPin ? 'PIN changed successfully' : 'PIN set successfully'),
+                    backgroundColor: AppColors.success,
+                  ),
+                );
+              }
             },
-            child: const Text('Change'),
+            child: Text(hasPin ? 'Change' : 'Set PIN'),
           ),
         ],
       ),

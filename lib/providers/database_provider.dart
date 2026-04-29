@@ -22,6 +22,7 @@ import '../domain/repositories/user_repository.dart';
 import '../services/backup_service.dart';
 import '../services/export_service.dart';
 import '../services/ai_insight_service.dart';
+import '../services/cloud_sync_service.dart';
 
 // Database provider
 final databaseProvider = Provider<AppDatabase>((ref) {
@@ -95,4 +96,8 @@ final exportServiceProvider = Provider<ExportService>((ref) {
 
 final aiInsightServiceProvider = Provider<AiInsightService>((ref) {
   return AiInsightService();
+});
+
+final cloudSyncServiceProvider = Provider<CloudSyncService>((ref) {
+  return CloudSyncService(ref.watch(databaseProvider));
 });

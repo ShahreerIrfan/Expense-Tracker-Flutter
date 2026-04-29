@@ -12,6 +12,7 @@ import '../screens/reports/reports_screen.dart';
 import '../screens/search/search_screen.dart';
 import '../screens/backup/backup_screen.dart';
 import '../screens/about/about_screen.dart';
+import '../screens/cloud/cloud_sync_screen.dart';
 import 'home_shell.dart';
 
 class AppRouter {
@@ -30,6 +31,7 @@ class AppRouter {
   static const String search = '/search';
   static const String backup = '/backup';
   static const String about = '/about';
+  static const String cloudSync = '/cloud-sync';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -68,6 +70,8 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const BackupScreen());
       case about:
         return MaterialPageRoute(builder: (_) => const AboutScreen());
+      case cloudSync:
+        return MaterialPageRoute(builder: (_) => const CloudSyncScreen());
       default:
         return MaterialPageRoute(
           builder: (_) => Scaffold(

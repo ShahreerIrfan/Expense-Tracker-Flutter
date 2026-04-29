@@ -16,6 +16,7 @@ class HomeShell extends ConsumerStatefulWidget {
 
 class _HomeShellState extends ConsumerState<HomeShell> {
   int _currentIndex = 0;
+  DateTime? _lastBackPressed;
 
   final _screens = const [
     DashboardScreen(),
@@ -25,9 +26,41 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     SettingsScreen(),
   ];
 
+  Future<bool> _onWillPop() async {
+    // If not on Home tab, switch to Home tab instead of exiting
+    if (_currentIndex != 0) {
+      setState(() => _currentIndex = 0);
+      return false;
+    }
+    // On Home tab: require double-tap back to exit
+    final now = DateTime.now();
+    if (_lastBackPressed == null ||
+        now.difference(_lastBackPressed!) > const Duration(seconds: 2)) {
+      _lastBackPressed = now;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Press back again to exit'),
+          duration: Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return false;
+    }
+    return true;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldPop = await _onWillPop();
+        if (shouldPop && mounted) {
+          Navigator.of(context).pop();
+        }
+      },
+      child: Scaffold(
       body: IndexedStack(
         index: _currentIndex,
         children: _screens,
@@ -67,6 +100,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         heroTag: 'fab_main',
         onPressed: () => _showQuickAdd(context),
         child: const Icon(Icons.add),
+      ),
       ),
     );
   }
